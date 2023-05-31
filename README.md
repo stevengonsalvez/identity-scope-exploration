@@ -12,7 +12,9 @@
       - [Option: Client based scope visibility](#option-client-based-scope-visibility)
   - [Using Scopes in Authorisation](#using-scopes-in-authorisation)
     - [`TBD` Scopes should be tied to data objects than Protocol](#tbd-scopes-should-be-tied-to-data-objects-than-protocol)
+      - [Scopes definition in REST and example implementation with Apigee and other.](#scopes-definition-in-rest-and-example-implementation-with-apigee-and-other)
       - [Scopes definition in Graphql and example implementation](#scopes-definition-in-graphql-and-example-implementation)
+      - [Scopes definition in gRPC and example implementation](#scopes-definition-in-grpc-and-example-implementation)
   - [GitOps for scope management](#gitops-for-scope-management)
 - [Appendix](#appendix)
   - [References](#references)
@@ -241,8 +243,17 @@ Moreover, it is imperative to maintain an internal document or a database within
 ## Using Scopes in Authorisation
 
 ### `TBD` Scopes should be tied to data objects than Protocol
-<TBD>
-    - example of REST
+
+>**TBD**
+
+</br>
+
+#### Scopes definition in REST and example implementation with Apigee and other.
+
+
+>**TBD**
+
+</br>
 
 #### Scopes definition in Graphql and example implementation
 
@@ -330,9 +341,10 @@ schema = GraphQLSchema(query=priceType, directives=[hasScopeDirective])
 For full working model look at [fizzbuzz](./fizzbuzz-gql/)
 
 
-    - example of gRPC
+#### Scopes definition in gRPC and example implementation
 
-
+>**TBD**
+</br>
 
 ## GitOps for scope management
 
