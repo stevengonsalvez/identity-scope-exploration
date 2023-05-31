@@ -11,7 +11,8 @@
       - [Option: Using scope hierarchies within subdomains](#option-using-scope-hierarchies-within-subdomains)
       - [Option: Client based scope visibility](#option-client-based-scope-visibility)
   - [Using Scopes in Authorisation](#using-scopes-in-authorisation)
-    - [Scopes are more tied to data objects than Protocol](#scopes-are-more-tied-to-data-objects-than-protocol)
+    - [`TBD` Scopes should be tied to data objects than Protocol](#tbd-scopes-should-be-tied-to-data-objects-than-protocol)
+      - [Scopes definition in Graphql and example implementation](#scopes-definition-in-graphql-and-example-implementation)
   - [GitOps for scope management](#gitops-for-scope-management)
 - [Appendix](#appendix)
   - [References](#references)
@@ -125,7 +126,7 @@ In large organisations, the sheer volume of scopes can indeed pose challenges. I
 	    
 -  **Token Compression:** Another option is to use JWT compression techniques. However, this may increase CPU usage as it requires token compression and decompression. This may not solve the problem if scope assignment crosses thresholds within the IDP
     
--  **Use of Reference Tokens:** Reference tokens store token payloads on the server-side and send a reference ID to the client. When resources are accessed, the server can use the reference ID to lookup the actual token payload, thus bypassing the need to include all the scopes in the token. An example illustrated below
+-  **Use of Reference Tokens:** Reference tokens store token payloads on the server-side and send a reference ID to the client. When resources are accessed, the server can use the reference ID to lookup the actual token payload, thus bypassing the need to include all the scopes in the token. An example is illustrated below
     
 ```mermaid
 sequenceDiagram
@@ -239,10 +240,96 @@ Moreover, it is imperative to maintain an internal document or a database within
 
 ## Using Scopes in Authorisation
 
-### Scopes are more tied to data objects than Protocol
+### `TBD` Scopes should be tied to data objects than Protocol
 <TBD>
     - example of REST
-    - example of GQL
+
+#### Scopes definition in Graphql and example implementation
+
+One way to control access to resources at a field level is through the use of custom directives.A directive is a way of decorating part of your schema, or the data returned by it, with additional functionality. For example, you could define a `@hasScope` directive that checks if the requesting user has the required scope to access a particular field.
+
+Here is an example of how a GraphQL schema for a Price type might look like, including the use of a `@hasScope` directive for scope validation:
+
+```graphql
+directive @hasScope(scope: [String]) on FIELD_DEFINITION
+
+type Price {
+  costPrice: Float @hasScope(scope: ["Pricing.cost.read"])
+  sellPrice: Float @hasScope(scope: ["Pricing.sell.read"])
+}
+
+type Query {
+  getPrice(productId: ID!): Price @hasScope(scope: ["Pricing.read"])
+}
+```
+
+In this example, the `@hasScope` directive is used to annotate the `costPrice` and `sellPrice` fields of the `Price` type, as well as the `getPrice` query. The directive takes a `scope` argument which is an array of the required scopes for accessing the annotated field.
+
+The logic for the `@hasScope` directive would be implemented on the server, where it would check the `scope` claim of the incoming request's JWT against the required scopes specified in the directive's argument. If the JWT contains all the required scopes, the request is allowed, otherwise, an error is returned.
+
+>example excerpt of validating scope using a python gql server
+
+```python
+from graphql import (
+    default_field_resolver,
+    DirectiveLocation,
+    GraphQLDirective,
+    GraphQLString,
+    GraphQLList,
+    GraphQLField,
+    GraphQLObjectType,
+    GraphQLSchema,
+    GraphQLArgument,
+)
+
+class HasScopeDirective:
+    def __init__(self, required_scopes):
+        self.required_scopes = required_scopes
+
+    def has_scope(self, resolver, root, info, **args):
+        # Get the actual scopes from the JWT.
+        actual_scopes = info.context.get('scopes', [])
+
+        # Check if all required scopes are present in the actual scopes
+        for required_scope in self.required_scopes:
+            if required_scope not in actual_scopes:
+                raise Exception('Insufficient scopes')
+
+        return resolver(root, info, **args)
+
+def has_scope_directive(resolver=default_field_resolver, obj=None, info=None, **args):
+    required_scopes = args.get('scope', [])
+    directive = HasScopeDirective(required_scopes)
+    return directive.has_scope(resolver, obj, info, **args)
+
+# Define the @hasScope directive
+hasScopeDirective = GraphQLDirective(
+    name='hasScope',
+    locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
+    args={
+        'scope': GraphQLArgument(GraphQLList(GraphQLString)),
+    }
+)
+
+# You would define your types and fields like this
+priceType = GraphQLObjectType(
+    "Price",
+    lambda: {
+        "costPrice": GraphQLField(
+            GraphQLString,
+            resolver=has_scope_directive,
+            directives=[hasScopeDirective]
+        )
+    },
+)
+
+# Add the directive to your schema
+schema = GraphQLSchema(query=priceType, directives=[hasScopeDirective])
+```
+
+For full working model look at [fizzbuzz](./fizzbuzz-gql/)
+
+
     - example of gRPC
 
 
@@ -251,20 +338,21 @@ Moreover, it is imperative to maintain an internal document or a database within
 
 One effective way to manage and track the changes to these scopes is to store them in a version control system, creating an audit trail of changes and a single source of truth.
 
-To facilitate this, we can store scopes in configuration as YAML or JSON. These configuration files can then be committed to a Git repository, enabling us to leverage the benefits of a [gitops](#gitops) for scope management.
+To facilitate this, we can store scopes in configuration as YAML or JSON. These configuration files can then be committed to a Git repository, enabling us to leverage the benefits of using [gitops](#gitops) for scope management.
 
 
-**Here's a high-level overview of how this process works:**
+**Here's a high-level example overview of how this process works with a trunk based gitflow:**
 
 1. **Scope Definition**: Each scope required for APIs is defined within its configuration file (YAML/JSON). This can be broken down by API provider, allowing granular control and responsibility.
+2. **CODEOWNERS**: Each configuration file is protected by relevant codeowners (API providers), who would be the custodian of access control for their API.
 
-2. **Commit & Push**: The configuration files are committed and pushed to a Git repository. Any changes to the scopes must be done via Git, ensuring an audit trail of changes.
+3. **Commit/ Push/ PR**: The configuration files are committed and pushed to a Git repository and a Pull Request is raised. Any changes to the scopes must be done via Git, ensuring an audit trail of changes. And will always require CODEOWNERS approval.
 
-3. **Automated Linting and Validation**: An automated process (CI pipeline) is triggered on every change, which performs linting and validation on the configuration files. This helps to ensure consistency and correctness in the scope definitions.
+4. **Automated Linting and Validation**: An automated process (CI pipeline) is triggered on every change, which performs linting and validation on the configuration files. This helps to ensure consistency and correctness in the scope definitions. Nomenclature and other custom variations of standards can be validated for every change in the PR and fail/pass as appropriate
 
-4. **Scope Deployment**: Upon successful validation, the scopes can be automatically updated in the identity provider, completing the GitOps cycle.
+5. **Scope Deployment**: Upon successful validation and approval from CODEOWNERS, the PR is automatically merged and the scopes can be updated in the identity provider, completing the GitOps cycle.
 
-By using this approach, scope management becomes more controlled, transparent, and auditable. It ensures that changes are validated and reviewed, reducing the risk of errors, and facilitates a more secure and organized management of API access.
+By using this approach, scope management becomes more controlled, transparent, and auditable. It ensures that changes are validated and reviewed, reducing the risk of errors, and facilitating a more secure and organized management of API access.
 
 
 >examples
@@ -337,11 +425,51 @@ This approach is significantly beneficial as it allows us to leverage a feature 
 
 This setup not only ensures accountability but also streamlines the review and approval process for changes to scope assignments. Any alterations proposed, such as via a pull request, can be directly routed to the appropriate API provider for review, ensuring they have a say on who gets access to their API.
 
+The GitOps pipeline would flip this hierarchy as maintained by code into the hierarchy that would appear in the JWT token. Illustrated as a `yaml` example (just to depict how it would reflect in the identity provider)
 
+```yaml
+mobile.org:
+  - Pricing.cost
+  - Pricing.sell
+  - Inventory.all
+  - Inventory.stocklevel
+  - Order.write
+  - Order.status
 
+webspa.digital:
+  - Pricing.cost.read
+  - Pricing.sell
+  - Inventory.all
+  - Order.read
+  - Order.status
+
+sales.dashboard:
+  - Pricing.cost.read
+  - Pricing.sell.read
+  - Inventory.read
+  - Inventory.stocklevel
+  - Order.read
+  - Order.status.read
+
+inventory.management:
+  - Pricing.cost
+  - Inventory.read
+  - Inventory.stocklevel.read
+
+admin.backend:
+  - Pricing.cost.write
+  - Pricing.sell.write
+  - Inventory.write
+  - Inventory.stocklevel.write
+  - Order.all
+  - Order.status.write
+
+```
+
+For more details look in the [scope-catalogue](./scope-catalogue) folder
 
 # Appendix
 
 ## References
 
-<a name="gitops"></a> Gitops - it leverages Git as a single source of truth for declarative infrastructure and applications. With the scopes defined in code and stored in a Git repository, it's possible to apply the same practices to scope management.
+<a name="gitops"></a> **Gitops** - it leverages Git as a single source of truth for declarative infrastructure and applications. With the scopes defined in code and stored in a Git repository, it's possible to apply the same practices to scope management.
