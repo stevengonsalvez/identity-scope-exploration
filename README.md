@@ -13,6 +13,8 @@
   - [Using Scopes in Authorisation](#using-scopes-in-authorisation)
     - [Scopes are more tied to data objects than Protocol](#scopes-are-more-tied-to-data-objects-than-protocol)
   - [GitOps for scope management](#gitops-for-scope-management)
+- [Appendix](#appendix)
+  - [References](#references)
 
 
 
@@ -26,12 +28,12 @@ As we navigate through the complexities of OAuth scopes and their management in 
 1. **Code-First Approach**: Advocate for the necessity of a code-first approach, emphasizing the benefits of defining and managing scopes as code. This practice fosters better collaboration, tracking, auditing, and scalability 
    - *Versus spreadsheets and localised manual configuration bound to tools*
    
-2. **Continuous Management of Scopes**: Establish the importance of continuous management (<u>*using GitOps*</u>) in large organizations. Detail strategies and mechanisms to maintain and update scopes, ensuring they align with evolving business requirements and security standards 
+2. **Continuous Management of Scopes**: Establish the importance of continuous management (<u>*using GitOps*</u>) in large organizations. Detail strategies and mechanisms to maintain and update scopes, with API providers retaining authority to granting access to their API's.
    - *Versus governance forums and councils that decreases fast-flow*
 
 3. **Scalable Systems**: Address the challenges of scope management at scale, exploring how to deal with large numbers of scopes and clients, and suggesting solutions such as scope hierarchies, reference tokens, token splitting, and policy-based claims.
 
-4. **Security and Privacy**: Highlight the significance of maintaining robust security and privacy controls in the scope management process. Discuss how different types of tokens and claims can be used to balance security, performance, and usability.
+4. **Security and Privacy**: Highlight the significance of maintaining robust security and privacy controls in the scope management process. Discuss how different types of tokens and claims can be used to balance security, performance, and usability. 
 
 5. **Integration with Existing Systems**: Explain how the proposed mechanisms can be integrated with existing systems and workflows, with a particular emphasis on GitOps and IdP-based setups.
 
@@ -247,3 +249,99 @@ Moreover, it is imperative to maintain an internal document or a database within
 
 ## GitOps for scope management
 
+One effective way to manage and track the changes to these scopes is to store them in a version control system, creating an audit trail of changes and a single source of truth.
+
+To facilitate this, we can store scopes in configuration as YAML or JSON. These configuration files can then be committed to a Git repository, enabling us to leverage the benefits of a [gitops](#gitops) for scope management.
+
+
+**Here's a high-level overview of how this process works:**
+
+1. **Scope Definition**: Each scope required for APIs is defined within its configuration file (YAML/JSON). This can be broken down by API provider, allowing granular control and responsibility.
+
+2. **Commit & Push**: The configuration files are committed and pushed to a Git repository. Any changes to the scopes must be done via Git, ensuring an audit trail of changes.
+
+3. **Automated Linting and Validation**: An automated process (CI pipeline) is triggered on every change, which performs linting and validation on the configuration files. This helps to ensure consistency and correctness in the scope definitions.
+
+4. **Scope Deployment**: Upon successful validation, the scopes can be automatically updated in the identity provider, completing the GitOps cycle.
+
+By using this approach, scope management becomes more controlled, transparent, and auditable. It ensures that changes are validated and reviewed, reducing the risk of errors, and facilitates a more secure and organized management of API access.
+
+
+>examples
+
+- pricing
+
+```yaml
+Pricing.cost:
+  - mobile.org
+  - inventory.management
+Pricing.cost.read:
+  - webspa.digital
+  - sales.dashboard
+Pricing.cost.write:
+  - admin.backend
+Pricing.sell:
+  - mobile.org
+  - webspa.digital
+Pricing.sell.read:
+  - sales.dashboard
+Pricing.sell.write:
+  - admin.backend
+
+```
+
+- inventory
+
+```yaml
+Inventory.all:
+  - mobile.org
+  - webspa.digital
+Inventory.read:
+  - sales.dashboard
+  - inventory.management
+Inventory.write:
+  - admin.backend
+Inventory.stocklevel:
+  - mobile.org
+  - sales.dashboard
+Inventory.stocklevel.read:
+  - inventory.management
+Inventory.stocklevel.write:
+  - admin.backend
+
+```
+
+- order management
+  
+```yaml
+Order.all:
+  - admin.backend
+Order.read:
+  - webspa.digital
+  - sales.dashboard
+Order.write:
+  - mobile.org
+Order.status:
+  - mobile.org
+  - webspa.digital
+Order.status.read:
+  - sales.dashboard
+Order.status.write:
+  - admin.backend
+
+```
+
+The design of managing scopes as provider-focused is premised on the intention to vest the full control of API accessibility in the hands of the API providers. Each YAML file, corresponding to a particular API provider, outlines the allocation of scopes to various clients.
+
+This approach is significantly beneficial as it allows us to leverage a feature like CODEOWNERS. The CODEOWNERS file is a mechanism of GitLab that defines the individuals or teams responsible for the code in a project. By this means, each scope assignment YAML file can have its designated "owner," ensuring that the corresponding API provider retains authority over their API's access.
+
+This setup not only ensures accountability but also streamlines the review and approval process for changes to scope assignments. Any alterations proposed, such as via a pull request, can be directly routed to the appropriate API provider for review, ensuring they have a say on who gets access to their API.
+
+
+
+
+# Appendix
+
+## References
+
+<a name="gitops"></a> Gitops - it leverages Git as a single source of truth for declarative infrastructure and applications. With the scopes defined in code and stored in a Git repository, it's possible to apply the same practices to scope management.

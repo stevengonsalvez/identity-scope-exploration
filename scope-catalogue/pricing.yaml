@@ -1,0 +1,15 @@
+Pricing.cost:
+  - mobile.org
+  - inventory.management
+Pricing.cost.read:
+  - webspa.digital
+  - sales.dashboard
+Pricing.cost.write:
+  - admin.backend
+Pricing.sell:
+  - mobile.org
+  - webspa.digital
+Pricing.sell.read:
+  - sales.dashboard
+Pricing.sell.write:
+  - admin.backend

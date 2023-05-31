@@ -1,0 +1,15 @@
+Inventory.all:
+  - mobile.org
+  - webspa.digital
+Inventory.read:
+  - sales.dashboard
+  - inventory.management
+Inventory.write:
+  - admin.backend
+Inventory.stocklevel:
+  - mobile.org
+  - sales.dashboard
+Inventory.stocklevel.read:
+  - inventory.management
+Inventory.stocklevel.write:
+  - admin.backend

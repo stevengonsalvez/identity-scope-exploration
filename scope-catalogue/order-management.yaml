@@ -1,0 +1,14 @@
+Order.all:
+  - admin.backend
+Order.read:
+  - webspa.digital
+  - sales.dashboard
+Order.write:
+  - mobile.org
+Order.status:
+  - mobile.org
+  - webspa.digital
+Order.status.read:
+  - sales.dashboard
+Order.status.write:
+  - admin.backend
